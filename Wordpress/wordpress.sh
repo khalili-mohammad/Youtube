@@ -1,34 +1,51 @@
-#!/bin/bash
+# Define Variables
+DB_ROOT_PASS="rootpassword"
+WP_DB_NAME="wordpress_db"
+WP_DB_USER="wordpress_user"
+WP_DB_PASS="wordpress_pass"
+DOMAIN=$(hostname -I | awk '{print $1}')  # Automatically get the server's IP
+EMAIL="admin@example.com"
 
-# Define Variables (تعریف متغیرها)
-DB_ROOT_PASS="rootpassword"  # MySQL root password (رمز عبور ریشه MySQL)
-WP_DB_NAME="wordpress_db"  # WordPress database name (نام دیتابیس وردپرس)
-WP_DB_USER="wordpress_user"  # WordPress database user (نام کاربری دیتابیس وردپرس)
-WP_DB_PASS="wordpress_pass"  # WordPress database user password (رمز عبور کاربر دیتابیس وردپرس)
-DOMAIN="example.com"  # Your website domain or IP (دامنه یا آی‌پی وب‌سایت شما)
-EMAIL="admin@example.com"  # Email for Let's Encrypt (ایمیل برای Let's Encrypt)
-
-# Update the System (به‌روزرسانی سیستم)
-echo "[+] Updating system... (در حال به‌روزرسانی سیستم...)"
+# Update System
+echo "[+] Updating system..."
 sudo apt update && sudo apt upgrade -y
 
-# Install Necessary Packages (نصب بسته‌های مورد نیاز)
-echo "[+] Installing Apache, MySQL, PHP, and Certbot... (نصب Apache، MySQL، PHP و Certbot)"
-sudo apt install -y apache2 mysql-server php libapache2-mod-php php-mysql php-cli php-curl php-zip php-xml unzip wget curl certbot python3-certbot-apache
+# Install Necessary Packages
+echo "[+] Installing Apache, MySQL, PHP, Certbot, and phpMyAdmin..."
+sudo apt install -y apache2 mysql-server php libapache2-mod-php php-mysql php-cli php-curl php-zip php-xml unzip wget curl certbot python3-certbot-apache phpmyadmin
 
-# Configure MySQL (پیکربندی MySQL)
-echo "[+] Configuring MySQL... (در حال پیکربندی MySQL...)"
+# Configure MySQL
+echo "[+] Configuring MySQL..."
 sudo systemctl start mysql
 sudo systemctl enable mysql
 
-sudo mysql -u root -p"$DB_ROOT_PASS" -e "CREATE DATABASE IF NOT EXISTS $WP_DB_NAME;"
-sudo mysql -u root -p"$DB_ROOT_PASS" -e "CREATE USER IF NOT EXISTS '$WP_DB_USER'@'localhost' IDENTIFIED BY '$WP_DB_PASS';"
-sudo mysql -u root -p"$DB_ROOT_PASS" -e "GRANT ALL PRIVILEGES ON $WP_DB_NAME.* TO '$WP_DB_USER'@'localhost';"
-sudo mysql -u root -p"$DB_ROOT_PASS" -e "FLUSH PRIVILEGES;"
+sudo mysql -u root -p"$DB_ROOT_PASS" <<EOF
+CREATE DATABASE IF NOT EXISTS $WP_DB_NAME;
+CREATE USER IF NOT EXISTS '$WP_DB_USER'@'localhost' IDENTIFIED BY '$WP_DB_PASS';
+GRANT ALL PRIVILEGES ON $WP_DB_NAME.* TO '$WP_DB_USER'@'localhost';
+ALTER USER 'phpmyadmin'@'localhost' IDENTIFIED BY '$DB_ROOT_PASS';
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '$DB_ROOT_PASS';
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' WITH GRANT OPTION;
+FLUSH PRIVILEGES;
+EOF
 
+# Configure phpMyAdmin
+echo "[+] Configuring phpMyAdmin..."
+sudo ln -s /usr/share/phpmyadmin /var/www/html/phpmyadmin
 
-# Download and Install WordPress (دانلود و نصب وردپرس)
-echo "[+] Downloading and installing WordPress... (دانلود و نصب وردپرس...)"
+# Allow root login in phpMyAdmin
+echo "[+] Allowing root login in phpMyAdmin..."
+sudo sed -i "s/^\$cfg\['Servers'\]\[\\$i\]\['auth_type'\] = 'cookie';/\$cfg\['Servers'\]\[\\$i\]\['auth_type'\] = 'config';/" /etc/phpmyadmin/config.inc.php
+sudo sed -i "s/^\$cfg\['Servers'\]\[\\$i\]\['user'\] = 'phpmyadmin';/\$cfg\['Servers'\]\[\\$i\]\['user'\] = 'root';/" /etc/phpmyadmin/config.inc.php
+sudo sed -i "s/^\$cfg\['Servers'\]\[\\$i\]\['password'\] = '';/\$cfg\['Servers'\]\[\\$i\]\['password'\] = '$DB_ROOT_PASS';/" /etc/phpmyadmin/config.inc.php
+
+# Restart Apache and MySQL
+echo "[+] Restarting Apache and MySQL..."
+sudo systemctl restart apache2
+sudo systemctl restart mysql
+
+# Download and Install WordPress
+echo "[+] Downloading and installing WordPress..."
 cd /var/www/html
 sudo wget -q https://wordpress.org/latest.tar.gz
 sudo tar -xzf latest.tar.gz
@@ -37,8 +54,8 @@ sudo rm latest.tar.gz
 sudo chown -R www-data:www-data /var/www/html/wp_site
 sudo chmod -R 755 /var/www/html/wp_site
 
-# Configure Apache (پیکربندی Apache)
-echo "[+] Configuring Apache... (در حال پیکربندی Apache...)"
+# Configure Apache
+echo "[+] Configuring Apache..."
 sudo bash -c "cat > /etc/apache2/sites-available/$DOMAIN.conf <<EOF
 <VirtualHost *:80>
     ServerName $DOMAIN
@@ -56,9 +73,10 @@ sudo a2ensite $DOMAIN.conf
 sudo a2enmod rewrite
 sudo systemctl restart apache2
 
-# Enable SSL with Let's Encrypt (فعال‌سازی SSL با Let's Encrypt)
-echo "[+] Generating SSL certificate with Let's Encrypt... (ایجاد گواهینامه SSL با Let's Encrypt...)"
-sudo certbot --apache -d $DOMAIN --email $EMAIL --agree-tos --non-interactive --redirect || echo "[!] Let's Encrypt SSL setup skipped. Check logs if needed."
+# Enable SSL with Let's Encrypt
+echo "[+] Generating SSL certificate with Let's Encrypt..."
+#sudo certbot --apache -d $DOMAIN --email $EMAIL --agree-tos --non-interactive --redirect || echo "[!] Let's Encrypt SSL setup skipped. Check logs if needed."
 
-# Completion Message (پیام پایان فرآیند)
-echo "[+] Installation complete! Visit http://$DOMAIN to configure WordPress. (نصب کامل شد! برای پیکربندی وردپرس به http://$DOMAIN مراجعه کنید.)"
+# Completion Message
+echo "[+] Installation complete! Visit http://$DOMAIN to configure WordPress."
+echo "[+] phpMyAdmin available at http://$DOMAIN/phpmyadmin"
