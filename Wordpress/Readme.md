@@ -1,8 +1,8 @@
 # WordPress Installation Script (English + Persian)
 
-This script automates the installation of **WordPress** on an **Ubuntu** server. It configures Apache, MySQL, PHP, phpmyadmin, and sets up an SSL certificate using **Let's Encrypt**.
+This script automates the installation of **WordPress** on an **Ubuntu** server. It configures Apache, MySQL, PHP, phpMyAdmin, and sets up an SSL certificate using **Let's Encrypt**.
 
-اسکریپت زیر به صورت خودکار **وردپرس** را بر روی **اوبونتو** نصب کرده، Apache، MySQL، PHP, phpmyadmin را تنظیم کرده و یک گواهینامه **SSL** با استفاده از **Let's Encrypt** ایجاد می‌کند.
+اسکریپت زیر به صورت خودکار **وردپرس** را بر روی **اوبونتو** نصب کرده، Apache، MySQL، PHP، phpMyAdmin را تنظیم کرده و یک گواهینامه **SSL** با استفاده از **Let's Encrypt** ایجاد می‌کند.
 
 ---
 
@@ -29,11 +29,11 @@ sudo apt update && sudo apt upgrade -y
 
 ### 2. Install Required Packages (نصب بسته‌های مورد نیاز)
 ```bash
-echo "[+] Installing Apache, MySQL, PHP, and Certbot... (نصب Apache، MySQL، PHP و Certbot)"
-sudo apt install -y apache2 mysql-server php libapache2-mod-php php-mysql php-cli php-curl php-zip php-xml unzip wget curl certbot python3-certbot-apache
+echo "[+] Installing Apache, MySQL, PHP, phpMyAdmin, and Certbot... (نصب Apache، MySQL، PHP، phpMyAdmin و Certbot)"
+sudo apt install -y apache2 mysql-server php libapache2-mod-php php-mysql php-cli php-curl php-zip php-xml unzip wget curl certbot python3-certbot-apache phpmyadmin
 ```
-- Installs **Apache**, **MySQL**, **PHP**, and **Certbot**.
-- **Apache**، **MySQL**، **PHP** و **Certbot** را نصب می‌کند.
+- Installs **Apache**, **MySQL**, **PHP**, **phpMyAdmin**, and **Certbot**.
+- **Apache**، **MySQL**، **PHP**، **phpMyAdmin** و **Certbot** را نصب می‌کند.
 
 ### 3. Configure MySQL (پیکربندی MySQL)
 ```bash
@@ -47,7 +47,17 @@ sudo mysql -e "FLUSH PRIVILEGES;"
 - Sets up a **WordPress** database and user.
 - یک دیتابیس و کاربر مخصوص **وردپرس** ایجاد می‌کند.
 
-### 4. Download and Install WordPress (دانلود و نصب وردپرس)
+### 4. Configure phpMyAdmin (پیکربندی phpMyAdmin)
+```bash
+echo "[+] Configuring phpMyAdmin... (در حال پیکربندی phpMyAdmin...)"
+sudo ln -s /usr/share/phpmyadmin /var/www/html/phpmyadmin
+sudo mysql -e "ALTER USER 'phpmyadmin'@'localhost' IDENTIFIED BY '$DB_ROOT_PASS';"
+```
+- Creates a symbolic link to make phpMyAdmin accessible.
+- Sets a password for the `phpmyadmin` user.
+- **لینک phpMyAdmin را ایجاد کرده و رمز عبور را تنظیم می‌کند.**
+
+### 5. Download and Install WordPress (دانلود و نصب وردپرس)
 ```bash
 echo "[+] Downloading and installing WordPress... (دانلود و نصب وردپرس...)"
 cd /var/www/html
@@ -60,7 +70,7 @@ sudo chown -R www-data:www-data /var/www/html/wp_site
 - Downloads and extracts WordPress files.
 - فایل‌های **وردپرس** را دانلود و از حالت فشرده خارج می‌کند.
 
-### 5. Configure Apache (پیکربندی Apache)
+### 6. Configure Apache (پیکربندی Apache)
 ```bash
 echo "[+] Configuring Apache... (در حال پیکربندی Apache...)"
 sudo bash -c "cat > /etc/apache2/sites-available/$DOMAIN.conf <<EOF
@@ -80,7 +90,7 @@ sudo systemctl restart apache2
 - Creates a VirtualHost configuration file for Apache.
 - یک فایل **پیکربندی** برای سرور **آپاچی** ایجاد می‌کند.
 
-### 6. Enable SSL with Let's Encrypt (فعال‌سازی SSL با Let's Encrypt)
+### 7. Enable SSL with Let's Encrypt (فعال‌سازی SSL با Let's Encrypt)
 ```bash
 echo "[+] Generating SSL certificate with Let's Encrypt... (ایجاد گواهینامه SSL با Let's Encrypt...)"
 sudo certbot --apache -d $DOMAIN --email $EMAIL --agree-tos --non-interactive
@@ -88,9 +98,10 @@ sudo certbot --apache -d $DOMAIN --email $EMAIL --agree-tos --non-interactive
 - Installs a **free SSL certificate** for your domain.
 - یک **گواهینامه SSL رایگان** برای دامنه شما نصب می‌کند.
 
-### 7. Completion Message (پیام پایان فرآیند)
+### 8. Completion Message (پیام پایان فرآیند)
 ```bash
 echo "[+] Installation complete! Visit https://$DOMAIN to configure WordPress. (نصب کامل شد! برای پیکربندی وردپرس به https://$DOMAIN مراجعه کنید.)"
+echo "[+] phpMyAdmin available at http://$DOMAIN/phpmyadmin"
 ```
 - Displays a completion message after installation.
 - پیامی برای تکمیل فرآیند نمایش می‌دهد.
