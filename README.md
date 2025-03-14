@@ -77,6 +77,6 @@ For support or inquiries, contact us at:
 - 💬 **Telegram**: [CyberLegends Group](https://t.me/@Hack_with_python)
 
 - 🌐 **وب‌سایت**: [www.cyber-legends.org](https://www.cyber-legends.org)
-- 💬 **تلگرام**: [گروه CyberLegends](https://t.me/@Hack_with_python)
+- 💬 **تلگرام**: [CyberLegends](https://t.me/@Hack_with_python)
 
 🚀 **با هم دنیای تکنولوژی رو کشف کنیم و چیزای جدید یاد بگیریم!**
