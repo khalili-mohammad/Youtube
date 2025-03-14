@@ -5,7 +5,7 @@ DB_ROOT_PASS="rootpassword"  # MySQL root password (رمز عبور ریشه MyS
 WP_DB_NAME="wordpress_db"  # WordPress database name (نام دیتابیس وردپرس)
 WP_DB_USER="wordpress_user"  # WordPress database user (نام کاربری دیتابیس وردپرس)
 WP_DB_PASS="wordpress_pass"  # WordPress database user password (رمز عبور کاربر دیتابیس وردپرس)
-DOMAIN="example.com"  # Your website domain (دامنه وب‌سایت شما)
+DOMAIN="example.com"  # Your website domain or IP (دامنه یا آی‌پی وب‌سایت شما)
 EMAIL="admin@example.com"  # Email for Let's Encrypt (ایمیل برای Let's Encrypt)
 
 # Update the System (به‌روزرسانی سیستم)
@@ -18,20 +18,24 @@ sudo apt install -y apache2 mysql-server php libapache2-mod-php php-mysql php-cl
 
 # Configure MySQL (پیکربندی MySQL)
 echo "[+] Configuring MySQL... (در حال پیکربندی MySQL...)"
-sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '$DB_ROOT_PASS';"
-sudo mysql -e "CREATE DATABASE $WP_DB_NAME;"
-sudo mysql -e "CREATE USER '$WP_DB_USER'@'localhost' IDENTIFIED BY '$WP_DB_PASS';"
-sudo mysql -e "GRANT ALL PRIVILEGES ON $WP_DB_NAME.* TO '$WP_DB_USER'@'localhost';"
-sudo mysql -e "FLUSH PRIVILEGES;"
+sudo systemctl start mysql
+sudo systemctl enable mysql
+
+sudo mysql -u root -p"$DB_ROOT_PASS" -e "CREATE DATABASE IF NOT EXISTS $WP_DB_NAME;"
+sudo mysql -u root -p"$DB_ROOT_PASS" -e "CREATE USER IF NOT EXISTS '$WP_DB_USER'@'localhost' IDENTIFIED BY '$WP_DB_PASS';"
+sudo mysql -u root -p"$DB_ROOT_PASS" -e "GRANT ALL PRIVILEGES ON $WP_DB_NAME.* TO '$WP_DB_USER'@'localhost';"
+sudo mysql -u root -p"$DB_ROOT_PASS" -e "FLUSH PRIVILEGES;"
+
 
 # Download and Install WordPress (دانلود و نصب وردپرس)
 echo "[+] Downloading and installing WordPress... (دانلود و نصب وردپرس...)"
 cd /var/www/html
-sudo wget https://wordpress.org/latest.tar.gz
+sudo wget -q https://wordpress.org/latest.tar.gz
 sudo tar -xzf latest.tar.gz
 sudo mv wordpress wp_site
 sudo rm latest.tar.gz
 sudo chown -R www-data:www-data /var/www/html/wp_site
+sudo chmod -R 755 /var/www/html/wp_site
 
 # Configure Apache (پیکربندی Apache)
 echo "[+] Configuring Apache... (در حال پیکربندی Apache...)"
@@ -43,6 +47,8 @@ sudo bash -c "cat > /etc/apache2/sites-available/$DOMAIN.conf <<EOF
         AllowOverride All
         Require all granted
     </Directory>
+    ErrorLog \${APACHE_LOG_DIR}/error.log
+    CustomLog \${APACHE_LOG_DIR}/access.log combined
 </VirtualHost>
 EOF"
 
@@ -52,7 +58,7 @@ sudo systemctl restart apache2
 
 # Enable SSL with Let's Encrypt (فعال‌سازی SSL با Let's Encrypt)
 echo "[+] Generating SSL certificate with Let's Encrypt... (ایجاد گواهینامه SSL با Let's Encrypt...)"
-sudo certbot --apache -d $DOMAIN --email $EMAIL --agree-tos --non-interactive
+sudo certbot --apache -d $DOMAIN --email $EMAIL --agree-tos --non-interactive --redirect || echo "[!] Let's Encrypt SSL setup skipped. Check logs if needed."
 
 # Completion Message (پیام پایان فرآیند)
-echo "[+] Installation complete! Visit https://$DOMAIN to configure WordPress. (نصب کامل شد! برای پیکربندی وردپرس به https://$DOMAIN مراجعه کنید.)"
+echo "[+] Installation complete! Visit http://$DOMAIN to configure WordPress. (نصب کامل شد! برای پیکربندی وردپرس به http://$DOMAIN مراجعه کنید.)"
