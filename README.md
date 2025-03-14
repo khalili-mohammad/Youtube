@@ -74,7 +74,7 @@ For support or inquiries, contact us at:
 
 ## 🔗 Stay Connected (با ما در ارتباط باشید!)
 - 🌐 **Website**: [www.cyber-legends.org](https://www.cyber-legends.org)
-- 💬 **Telegram**: [CyberLegends Group](https://t.me/@Hack_with_python)
+- 💬 **Telegram**: [CyberLegends](https://t.me/@Hack_with_python)
 
 - 🌐 **وب‌سایت**: [www.cyber-legends.org](https://www.cyber-legends.org)
 - 💬 **تلگرام**: [CyberLegends](https://t.me/@Hack_with_python)
