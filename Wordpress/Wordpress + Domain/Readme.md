@@ -6,7 +6,7 @@ This script automates the installation of **WordPress** on an **Ubuntu** server.
 
 ---
 
-## Prerequisites (پیش‌نیازها)
+## Prerequisites (پیش‌ نیازها)
 - A fresh Ubuntu server.
 - A registered domain pointing to your server.
 - A user with sudo privileges.
@@ -19,13 +19,13 @@ This script automates the installation of **WordPress** on an **Ubuntu** server.
 
 ## Steps (مراحل اجرای اسکریپت)
 
-### 1. Update the System (به‌روزرسانی سیستم)
+### 1. Update the System (به‌ روز رسانی سیستم)
 ```bash
 echo "[+] Updating system... (در حال به‌روزرسانی سیستم...)"
 sudo apt update && sudo apt upgrade -y
 ```
 - Updates all installed packages to the latest version.
-- بسته‌های نصب شده را به آخرین نسخه به‌روزرسانی می‌کند.
+- بسته‌های نصب شده را به آخرین نسخه به‌ روز رسانی می‌کند.
 
 ### 2. Install Required Packages (نصب بسته‌های مورد نیاز)
 ```bash
@@ -33,7 +33,7 @@ echo "[+] Installing Apache, MySQL, PHP, Certbot, and phpMyAdmin... (نصب Apac
 sudo apt install -y apache2 mysql-server php libapache2-mod-php php-mysql php-cli php-curl php-zip php-xml unzip wget curl certbot python3-certbot-apache phpmyadmin
 ```
 - Installs **Apache**, **MySQL**, **PHP**, **Certbot**, and **phpMyAdmin**.
-- **Apache**، **MySQL**، **PHP**، **Certbot** و **phpMyAdmin** را نصب می‌کند.
+- **Apache**، **MySQL**، **PHP**، **Certbot**, **phpMyAdmin** نصب نرم افزار های مورد نیاز. 
 
 ### 3. Configure MySQL (پیکربندی MySQL)
 ```bash
@@ -63,7 +63,7 @@ sudo chown -R www-data:www-data /var/www/html/wp_site
 sudo chmod -R 755 /var/www/html/wp_site
 ```
 - Downloads and extracts WordPress files.
-- فایل‌های **وردپرس** را دانلود و از حالت فشرده خارج می‌کند.
+- فایل‌ های **وردپرس** را دانلود و از حالت فشرده خارج می‌کند.
 
 ### 5. Configure Apache (پیکربندی Apache)
 ```bash
@@ -114,7 +114,7 @@ sudo certbot --apache -d $DOMAIN --email $EMAIL --agree-tos --non-interactive --
 
 ### 7. Setup Automatic SSL Renewal (فعال‌سازی تمدید خودکار SSL)
 ```bash
-echo "[+] Setting up automatic renewal for Let's Encrypt SSL... (تنظیم تمدید خودکار گواهینامه SSL...)"
+echo "[+] Setting up automatic renewal for Let's Encrypt SSL... (پیکربندی سسل)"
 echo "0 3 * * * root certbot renew --quiet" | sudo tee -a /etc/crontab > /dev/null
 ```
 - Ensures SSL certificate is renewed automatically.
