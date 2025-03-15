@@ -5,8 +5,16 @@ DB_ROOT_PASS="rootpassword"
 WP_DB_NAME="wordpress_db"
 WP_DB_USER="wordpress_user"
 WP_DB_PASS="wordpress_pass"
-DOMAIN="wordpress.example.com"  # Set your Domain or Subdomain
-EMAIL="mail@example.com"
+DOMAIN="example.com"  # Set your Domain or Subdomain
+EMAIL="example@example.com"
+
+# Funktion zur Fehlerprüfung
+check_success() {
+    if [ $? -ne 0 ]; then
+        echo "[ERROR] $1 fehlgeschlagen. Überprüfe die Logs."
+        exit 1
+    fi
+}
 
 # Update System
 echo "[+] Updating system..."
@@ -15,11 +23,13 @@ sudo apt update && sudo apt upgrade -y
 # Install Necessary Packages
 echo "[+] Installing Apache, MySQL, PHP, Certbot, and phpMyAdmin..."
 sudo apt install -y apache2 mysql-server php libapache2-mod-php php-mysql php-cli php-curl php-zip php-xml unzip wget curl certbot python3-certbot-apache phpmyadmin
+check_success "Package installation"
 
 # Configure MySQL
 echo "[+] Configuring MySQL..."
 sudo systemctl start mysql
 sudo systemctl enable mysql
+check_success "MySQL start"
 
 sudo mysql -u root -p"$DB_ROOT_PASS" <<EOF
 CREATE DATABASE IF NOT EXISTS $WP_DB_NAME;
@@ -30,31 +40,38 @@ ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '$DB_ROOT
 GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' WITH GRANT OPTION;
 FLUSH PRIVILEGES;
 EOF
+check_success "MySQL configuration"
 
 # Configure phpMyAdmin
 echo "[+] Configuring phpMyAdmin..."
-sudo ln -s /usr/share/phpmyadmin /var/www/html/phpmyadmin
+if [ ! -L "/var/www/html/phpmyadmin" ]; then
+    sudo ln -s /usr/share/phpmyadmin /var/www/html/phpmyadmin
+fi
 
-# Allow root login in phpMyAdmin
-echo "[+] Allowing root login in phpMyAdmin..."
-sudo sed -i "s/^\$cfg\['Servers'\]\[\$i\]\['auth_type'\] = 'cookie';/\$cfg\['Servers'\]\[\$i\]\['auth_type'\] = 'config';/" /etc/phpmyadmin/config.inc.php
-sudo sed -i "s/^\$cfg\['Servers'\]\[\$i\]\['user'\] = 'phpmyadmin';/\$cfg\['Servers'\]\[\$i\]\['user'\] = 'root';/" /etc/phpmyadmin/config.inc.php
-sudo sed -i "s/^\$cfg\['Servers'\]\[\$i\]\['password'\] = '';/\$cfg\['Servers'\]\[\$i\]\['password'\] = '$DB_ROOT_PASS';/" /etc/phpmyadmin/config.inc.php
+# Ensure WordPress directory exists
+echo "[+] Ensuring WordPress directory exists..."
+sudo mkdir -p /var/www/html/wp_site
+sudo chown -R www-data:www-data /var/www/html/wp_site
+sudo chmod -R 755 /var/www/html/wp_site
 
 # Restart Apache and MySQL
 echo "[+] Restarting Apache and MySQL..."
 sudo systemctl restart apache2
+check_success "Apache restart"
 sudo systemctl restart mysql
+check_success "MySQL restart"
 
 # Download and Install WordPress
 echo "[+] Downloading and installing WordPress..."
 cd /var/www/html
 sudo wget -q https://wordpress.org/latest.tar.gz
+check_success "WordPress download"
 sudo tar -xzf latest.tar.gz
-sudo mv wordpress wp_site
-sudo rm latest.tar.gz
+sudo mv wordpress/* wp_site/
+sudo rm -rf latest.tar.gz wordpress
 sudo chown -R www-data:www-data /var/www/html/wp_site
 sudo chmod -R 755 /var/www/html/wp_site
+check_success "WordPress installation"
 
 # Configure Apache (HTTP and HTTPS)
 echo "[+] Configuring Apache Virtual Hosts..."
@@ -66,6 +83,12 @@ sudo bash -c "cat > /etc/apache2/sites-available/$DOMAIN.conf <<EOF
         AllowOverride All
         Require all granted
     </Directory>
+    
+    # Automatische HTTPS-Umleitung (wird später aktiviert)
+    RewriteEngine on
+    RewriteCond %{HTTPS} !=on
+    RewriteRule ^(.*)$ https://$DOMAIN\$1 [R=301,L]
+
     ErrorLog \${APACHE_LOG_DIR}/error.log
     CustomLog \${APACHE_LOG_DIR}/access.log combined
 </VirtualHost>
@@ -84,27 +107,61 @@ sudo bash -c "cat > /etc/apache2/sites-available/$DOMAIN-ssl.conf <<EOF
     SSLEngine on
     SSLCertificateFile /etc/letsencrypt/live/$DOMAIN/fullchain.pem
     SSLCertificateKeyFile /etc/letsencrypt/live/$DOMAIN/privkey.pem
-    Include /etc/letsencrypt/options-ssl-apache.conf
 
     ErrorLog \${APACHE_LOG_DIR}/error.log
     CustomLog \${APACHE_LOG_DIR}/access.log combined
 </VirtualHost>
 EOF"
 
+# Aktivieren von Apache2-Modulen und VirtualHosts
 sudo a2ensite $DOMAIN.conf
 sudo a2ensite $DOMAIN-ssl.conf
 sudo a2enmod rewrite
 sudo a2enmod ssl
+sudo systemctl stop apache2
+
+# Prüfen, ob bereits ein SSL-Zertifikat existiert
+if [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
+    echo "[+] SSL-Zertifikat existiert bereits. Prüfe, ob eine Erneuerung nötig ist..."
+    
+    if sudo openssl x509 -checkend 2592000 -noout -in /etc/letsencrypt/live/$DOMAIN/fullchain.pem; then
+        echo "[+] Zertifikat ist noch gültig. Keine Erneuerung erforderlich."
+    else
+        echo "[+] Zertifikat läuft bald ab. Erneuere Zertifikat..."
+        sudo certbot renew --quiet
+        check_success "SSL-Zertifikat erneuert"
+    fi
+else
+    echo "[+] Kein SSL-Zertifikat gefunden. Erstelle ein neues Zertifikat..."
+    sudo a2dissite $DOMAIN-ssl.conf
+    
+    sudo certbot certonly --standalone -d $DOMAIN --email $EMAIL --agree-tos --non-interactive
+    if [ $? -ne 0 ]; then
+        echo "[!] Let's Encrypt SSL-Setup fehlgeschlagen. Starte Apache ohne SSL..."
+    else
+        echo "[+] SSL-Zertifikat erfolgreich erstellt."
+        sudo a2ensite $DOMAIN-ssl.conf
+    fi
+fi
+
+# Apache2 neu starten
+sudo systemctl start apache2
 sudo systemctl restart apache2
+check_success "Restarting Apache after SSL setup"
 
-# Enable SSL with Let's Encrypt
-echo "[+] Generating SSL certificate with Let's Encrypt..."
-sudo certbot --apache -d $DOMAIN --email $EMAIL --agree-tos --non-interactive --redirect || echo "[!] Let's Encrypt SSL setup skipped. Check logs if needed."
+# Falls SSL erfolgreich installiert wurde, aktiviere HTTPS-Redirect in Apache
+if [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
+    echo "[+] SSL erfolgreich eingerichtet! Erzwinge HTTPS-Umleitung..."
+    sudo sed -i '/RewriteCond %{HTTPS} !=on/,+1 s/^#//' /etc/apache2/sites-available/$DOMAIN.conf
+    sudo systemctl restart apache2
+fi
 
-# Setup Automatic Renewal for Certbot
-echo "[+] Setting up automatic renewal for Let's Encrypt SSL..."
-echo "0 3 * * * root certbot renew --quiet" | sudo tee -a /etc/crontab > /dev/null
+# Automatische Erneuerung für Let's Encrypt einrichten (Falls nicht vorhanden)
+if ! crontab -l | grep -q "certbot renew"; then
+    echo "[+] Automatische Erneuerung für Let's Encrypt einrichten..."
+    (crontab -l ; echo "0 3 * * * certbot renew --quiet") | crontab -
+fi
 
-# Completion Message
-echo "[+] Installation complete! Visit https://$DOMAIN to configure WordPress."
-echo "[+] phpMyAdmin available at https://$DOMAIN/phpmyadmin"
+# Abschlussmeldung
+echo "[+] Installation abgeschlossen! Besuche https://$DOMAIN zur WordPress-Konfiguration."
+echo "[+] phpMyAdmin verfügbar unter https://$DOMAIN/phpmyadmin"
