@@ -5,8 +5,8 @@ DB_ROOT_PASS="rootpassword"
 WP_DB_NAME="wordpress_db"
 WP_DB_USER="wordpress_user"
 WP_DB_PASS="wordpress_pass"
-DOMAIN="wordpress.cyber-legends.org"  # Set your Domain or Subdomain
-EMAIL="support@cyber-legends.org"
+DOMAIN="wordpress.example.com"  # Set your Domain or Subdomain
+EMAIL="mail@example.com"
 
 # Update System
 echo "[+] Updating system..."
