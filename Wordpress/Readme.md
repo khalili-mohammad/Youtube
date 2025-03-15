@@ -1,8 +1,8 @@
 # WordPress Installation Script (English + Persian)
 
-This script automates the installation of **WordPress** on an **Ubuntu** server. It configures Apache, MySQL, PHP, phpMyAdmin, and sets up an SSL certificate using **Let's Encrypt**.
+This script automates the installation of **WordPress** on an **Ubuntu** server. It configures Apache, MySQL, PHP, phpMyAdmin
 
-اسکریپت زیر به صورت خودکار **وردپرس** را بر روی **اوبونتو** نصب کرده، Apache، MySQL، PHP، phpMyAdmin را تنظیم کرده و یک گواهینامه **SSL** با استفاده از **Let's Encrypt** ایجاد می‌کند.
+اسکریپت زیر به صورت خودکار **وردپرس** را بر روی **اوبونتو** نصب کرده، Apache، MySQL، PHP، phpMyAdmin را تنظیم کرده
 
 ---
 
