@@ -13,7 +13,7 @@ This script automates the installation of **WordPress** on an **Ubuntu** server.
 
 - یک سرور اوبونتو تازه نصب شده.
 - یک دامنه ثبت شده که به سرور شما اشاره دارد.
-- یک کاربر با دسترسی **sudo**.
+- یک کاربر با دسترسی **sudo**
 
 ---
 
