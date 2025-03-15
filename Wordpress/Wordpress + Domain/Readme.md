@@ -1,133 +1,112 @@
-# WordPress Installation Script (English + Persian)
+# WordPress Auto-Installer Script
 
-This script automates the installation of **WordPress** on an **Ubuntu** server. It configures Apache, MySQL, PHP, and sets up an SSL certificate using **Let's Encrypt**.
+This script automates the installation and configuration of a **WordPress** website with **Apache**, **MySQL**, **PHP**, **phpMyAdmin**, and **Let's Encrypt SSL certificate** on an **Ubuntu server**.
 
-اسکریپت زیر به صورت خودکار **وردپرس** را بر روی **اوبونتو** نصب کرده، Apache، MySQL، PHP را تنظیم کرده و یک گواهینامه **SSL** با استفاده از **Let's Encrypt** ایجاد می‌کند.
+## Features
+- Automatic installation of **Apache**, **MySQL**, **PHP**, and **phpMyAdmin**
+- Secure MySQL database and user creation for WordPress
+- Automated WordPress download, setup, and permissions
+- Configuration of Apache virtual hosts (HTTP & HTTPS)
+- Automatic issuance and renewal of **Let's Encrypt SSL certificates**
+- Redirects all HTTP traffic to HTTPS after SSL setup
+
+## Prerequisites
+- A **clean Ubuntu server** (20.04/22.04 recommended)
+- A **registered domain name** pointing to your server's IP
+- Root or sudo access to the server
+
+## Installation
+### 1️⃣ Download and Run the Script
+```bash
+wget https://github.com/khalili-mohammad/Youtube/edit/main/Wordpress/Wordpress%20%2B%20Domain/wordpress.sh
+chmod +x wordpress.sh
+sudo ./wordpress.sh
+```
+
+### 2️⃣ Provide Necessary Details
+Before running, **edit the script** to update the following variables:
+```bash
+DB_ROOT_PASS="your_database_root_password"
+WP_DB_NAME="your_wordpress_database_name"
+WP_DB_USER="your_wordpress_user"
+WP_DB_PASS="your_wordpress_password"
+DOMAIN="yourdomain.com"
+EMAIL="your_email@example.com"
+```
+
+## Post-Installation Steps
+1. Open **https://yourdomain.com** in your browser.
+2. Follow the WordPress installation steps (choose language, set username/password, etc.).
+3. Visit **https://yourdomain.com/phpmyadmin** to manage the database.
+
+## Troubleshooting
+- **Apache fails to start?**
+  ```bash
+  sudo journalctl -xeu apache2.service | tail -n 20
+  ```
+- **Check Let's Encrypt logs:**
+  ```bash
+  sudo cat /var/log/letsencrypt/letsencrypt.log
+  ```
+- **Renew SSL manually:**
+  ```bash
+  sudo certbot renew --force-renewal
+  ```
 
 ---
 
-## Prerequisites (پیش‌ نیازها)
-- A fresh Ubuntu server.
-- A registered domain pointing to your server.
-- A user with sudo privileges.
+# اسکریپت نصب خودکار وردپرس
 
-- یک سرور اوبونتو تازه نصب شده.
-- یک دامنه ثبت شده که به سرور شما اشاره دارد.
-- یک کاربر با دسترسی **sudo**
+این اسکریپت فرآیند نصب و پیکربندی **وردپرس** را به صورت خودکار انجام می‌دهد و شامل **Apache، MySQL، PHP، phpMyAdmin** و **گواهینامه امنیتی Let's Encrypt** است.
 
----
+## ویژگی‌ها
+- نصب خودکار **Apache، MySQL، PHP، phpMyAdmin**
+- ایجاد خودکار پایگاه داده **MySQL** و کاربر **WordPress**
+- دانلود و تنظیم خودکار وردپرس با دسترسی‌های مناسب
+- تنظیم میزبان‌های مجازی **Apache** برای HTTP و HTTPS
+- صدور و تمدید خودکار **گواهی امنیتی Let's Encrypt SSL**
+- هدایت تمام ترافیک **HTTP** به **HTTPS** پس از نصب موفقیت‌آمیز SSL
 
-## Steps (مراحل اجرای اسکریپت)
+## پیش‌نیازها
+- یک سرور **Ubuntu** تازه نصب‌شده (**20.04 یا 22.04 پیشنهاد می‌شود**)
+- یک **نام دامنه** که به آی‌پی سرور اشاره کند
+- دسترسی **ریشه (Root) یا sudo** به سرور
 
-### 1. Update the System (به‌ روز رسانی سیستم)
+## نصب
+### 1️⃣ دانلود و اجرای اسکریپت
 ```bash
-echo "[+] Updating system... (در حال به‌روزرسانی سیستم...)"
-sudo apt update && sudo apt upgrade -y
-```
-- Updates all installed packages to the latest version.
-- بسته‌های نصب شده را به آخرین نسخه به‌ روز رسانی می‌کند.
-
-### 2. Install Required Packages (نصب بسته‌های مورد نیاز)
-```bash
-echo "[+] Installing Apache, MySQL, PHP, Certbot, and phpMyAdmin... (نصب Apache، MySQL، PHP، Certbot و phpMyAdmin)"
-sudo apt install -y apache2 mysql-server php libapache2-mod-php php-mysql php-cli php-curl php-zip php-xml unzip wget curl certbot python3-certbot-apache phpmyadmin
-```
-- Installs **Apache**, **MySQL**, **PHP**, **Certbot**, and **phpMyAdmin**.
-- **Apache**، **MySQL**، **PHP**، **Certbot**, **phpMyAdmin** نصب نرم افزار های مورد نیاز. 
-
-### 3. Configure MySQL (پیکربندی MySQL)
-```bash
-echo "[+] Configuring MySQL... (در حال پیکربندی MySQL...)"
-sudo mysql -u root -p"$DB_ROOT_PASS" <<EOF
-CREATE DATABASE IF NOT EXISTS $WP_DB_NAME;
-CREATE USER IF NOT EXISTS '$WP_DB_USER'@'localhost' IDENTIFIED BY '$WP_DB_PASS';
-GRANT ALL PRIVILEGES ON $WP_DB_NAME.* TO '$WP_DB_USER'@'localhost';
-ALTER USER 'phpmyadmin'@'localhost' IDENTIFIED BY '$DB_ROOT_PASS';
-ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '$DB_ROOT_PASS';
-GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' WITH GRANT OPTION;
-FLUSH PRIVILEGES;
-EOF
-```
-- Sets up a **WordPress** database and user.
-- یک دیتابیس و کاربر مخصوص **وردپرس** ایجاد می‌کند.
-
-### 4. Download and Install WordPress (دانلود و نصب وردپرس)
-```bash
-echo "[+] Downloading and installing WordPress... (دانلود و نصب وردپرس...)"
-cd /var/www/html
-sudo wget -q https://wordpress.org/latest.tar.gz
-sudo tar -xzf latest.tar.gz
-sudo mv wordpress wp_site
-sudo rm latest.tar.gz
-sudo chown -R www-data:www-data /var/www/html/wp_site
-sudo chmod -R 755 /var/www/html/wp_site
-```
-- Downloads and extracts WordPress files.
-- فایل‌ های **وردپرس** را دانلود و از حالت فشرده خارج می‌کند.
-
-### 5. Configure Apache (پیکربندی Apache)
-```bash
-echo "[+] Configuring Apache Virtual Hosts... (در حال پیکربندی Apache...)"
-sudo a2enmod rewrite ssl
-sudo bash -c "cat > /etc/apache2/sites-available/$DOMAIN.conf <<EOF
-<VirtualHost *:80>
-    ServerName $DOMAIN
-    DocumentRoot /var/www/html/wp_site
-    <Directory /var/www/html/wp_site>
-        AllowOverride All
-        Require all granted
-    </Directory>
-</VirtualHost>
-EOF"
-
-sudo bash -c "cat > /etc/apache2/sites-available/$DOMAIN-ssl.conf <<EOF
-<VirtualHost *:443>
-    ServerName $DOMAIN
-    DocumentRoot /var/www/html/wp_site
-
-    <Directory /var/www/html/wp_site>
-        AllowOverride All
-        Require all granted
-    </Directory>
-
-    SSLEngine on
-    SSLCertificateFile /etc/letsencrypt/live/$DOMAIN/fullchain.pem
-    SSLCertificateKeyFile /etc/letsencrypt/live/$DOMAIN/privkey.pem
-    Include /etc/letsencrypt/options-ssl-apache.conf
-</VirtualHost>
-EOF"
-
-sudo a2ensite $DOMAIN.conf
-sudo a2ensite $DOMAIN-ssl.conf
-sudo systemctl restart apache2
-```
-- Creates a VirtualHost configuration file for both HTTP and HTTPS.
-- یک فایل **پیکربندی** برای سرور **آپاچی** برای هر دو پروتکل HTTP و HTTPS ایجاد می‌کند.
-
-### 6. Enable SSL with Let's Encrypt (فعال‌سازی SSL با Let's Encrypt)
-```bash
-echo "[+] Generating SSL certificate with Let's Encrypt... (ایجاد گواهینامه SSL با Let's Encrypt...)"
-sudo certbot --apache -d $DOMAIN --email $EMAIL --agree-tos --non-interactive --redirect
-```
-- Installs a **free SSL certificate** for your domain.
-- یک **گواهینامه SSL رایگان** برای دامنه شما نصب می‌کند.
-
-### 7. Setup Automatic SSL Renewal (فعال‌ سازی و تمدید خودکار SSL)
-```bash
-echo "[+] Setting up automatic renewal for Let's Encrypt SSL... (پیکربندی سسل)"
-echo "0 3 * * * root certbot renew --quiet" | sudo tee -a /etc/crontab > /dev/null
-```
-- Ensures SSL certificate is renewed automatically.
-- اطمینان حاصل می‌کند که گواهینامه SSL به‌صورت خودکار تمدید شود.
-
-### 8. Completion Message (پیام پایان فرآیند)
-```bash
-echo "[+] Installation complete! Visit https://$DOMAIN to configure WordPress. (نصب کامل شد! برای پیکربندی وردپرس به https://$DOMAIN مراجعه کنید.)"
+wget https://github.com/khalili-mohammad/Youtube/edit/main/Wordpress/Wordpress%20%2B%20Domain/wordpress.sh
+chmod +x wordpress.sh
+sudo ./wordpress.sh
 ```
 
----
+### 2️⃣ تغییر متغیرهای مورد نیاز
+قبل از اجرا، **فایل اسکریپت را ویرایش کنید** و اطلاعات زیر را تغییر دهید:
+```bash
+DB_ROOT_PASS="رمز عبور پایگاه داده ریشه"
+WP_DB_NAME="نام پایگاه داده وردپرس"
+WP_DB_USER="نام کاربری وردپرس"
+WP_DB_PASS="رمز عبور وردپرس"
+DOMAIN="نام دامنه شما"
+EMAIL="ایمیل شما"
+```
 
-## License (لایسنس)
-This script is open-source and released under the MIT License.
+## مراحل بعد از نصب
+1. مرورگر را باز کرده و **https://yourdomain.com** را وارد کنید.
+2. مراحل نصب وردپرس را طی کنید (انتخاب زبان، تنظیم نام کاربری/رمز عبور، و غیره).
+3. از **https://yourdomain.com/phpmyadmin** برای مدیریت پایگاه داده استفاده کنید.
 
-این اسکریپت **متن باز** بوده و تحت مجوز **MIT** منتشر شده است.
+## رفع مشکلات
+- **اگر Apache اجرا نمی‌شود:**
+  ```bash
+  sudo journalctl -xeu apache2.service | tail -n 20
+  ```
+- **بررسی لاگ‌های Let's Encrypt:**
+  ```bash
+  sudo cat /var/log/letsencrypt/letsencrypt.log
+  ```
+- **تمدید دستی گواهینامه SSL:**
+  ```bash
+  sudo certbot renew --force-renewal
+  ```
+
