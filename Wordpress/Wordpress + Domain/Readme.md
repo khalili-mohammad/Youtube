@@ -112,7 +112,7 @@ sudo certbot --apache -d $DOMAIN --email $EMAIL --agree-tos --non-interactive --
 - Installs a **free SSL certificate** for your domain.
 - یک **گواهینامه SSL رایگان** برای دامنه شما نصب می‌کند.
 
-### 7. Setup Automatic SSL Renewal (فعال‌سازی تمدید خودکار SSL)
+### 7. Setup Automatic SSL Renewal (فعال‌ سازی و تمدید خودکار SSL)
 ```bash
 echo "[+] Setting up automatic renewal for Let's Encrypt SSL... (پیکربندی سسل)"
 echo "0 3 * * * root certbot renew --quiet" | sudo tee -a /etc/crontab > /dev/null
